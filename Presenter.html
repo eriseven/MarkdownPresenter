@@ -238,7 +238,7 @@ function getParameterByName(name, url) {
 
 Present.reload = function() {
     var markdownPage = getParameterByName('markdownPage');
-    if (markdownPage == "") markdownPage = 'presentation.md';
+    if (!markdownPage) markdownPage = 'presentation.md';
     Present.duringReloading = true;
     $.ajax({
         // url: 'presentation.md',
