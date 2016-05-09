@@ -22,9 +22,15 @@
     position: fixed;
     bottom: 1em;
     right: 2px;
-    height:1.3em;
+    height:1.5em;
     width:8em;
     overflow:hidden;
+  }
+   .slideProgress
+  {
+    background-color: green;
+    width: 100%;
+    min-height: 10px;
   }
   .slideCount select {
     color:white;
@@ -122,6 +128,7 @@ if (!window.jQuery) {
 <div class="slideCount">
   <select tabindex="-1">
   </select>
+  <div class="slideProgress"></div>
 </div>
 
   <div class="padding">
@@ -159,6 +166,8 @@ var Present = {
             post: function (view) { view.fadeIn('fast'); }
         }
     },
+    currentDocument: '',
+    autoReloadTimerID: null
 };
 Present.currentEffect = Present.effects['n']; // Default slide transiton effect is nothing.
 
@@ -181,6 +190,7 @@ Present.showSlide = function(slide) {
   }, this));
 
   $('.slideCount select').val(this.currentSlide);
+  $('.slideProgress').css("width", (this.currentSlide + 1)/this.slides.length * 100 + "%");
   window.location.hash = '#' + (Present.currentSlide + 1);
 };
 Present.nextSlide = function() {
@@ -217,24 +227,41 @@ Present.buildSlideCounter = function () {
 }
 
 Present.reload = function() {
+    Present.duringReloading = true;
     $.ajax({
         url: 'presentation.md',
         cache: false,
+        dataType: 'text',
         success: function(data) {
-            if (data.length>0) {
+            if (data.length>0 && Present.currentDocument != data) {
                 converter = new Showdown.converter();
                 var converted = converter.makeHtml(data);
                 Present.slides = converted.split('<p>!</p>');
                 Present.buildSlideCounter();
                 Present.showSlide(Present.currentSlide);
+                Present.currentDocument = data;
 
                 // If beforeprint event not supported, build pages to printing now.
                 if (('onbeforeprint' in window) === false) Present.buildPrintPage();
             }
+            Present.duringReloading = false;
         }
     });
 };
 Present.reload();
+
+Present.toggleAutoReload = function() {
+    if (Present.autoReloadTimerID == null) {
+        Present.autoReloadTimerID = setInterval(function() {
+            if (Present.duringReloading) return;
+            Present.reload();
+        }, 200);
+    }
+    else {
+        clearInterval(Present.autoReloadTimerID);
+        Present.autoReloadTimerID = null;
+    }
+};
 
 (function () {
     var pageToJump = '';
@@ -277,6 +304,10 @@ Present.reload();
             Present.reload();
             return false;
         }
+        if (e.keyCode == 'A'.charCodeAt(0)) {
+            Present.toggleAutoReload();
+            return false;
+        }
     });
 })();
 
@@ -287,7 +318,7 @@ $(function () {
     var startPos = null;
     var isPointerTypeTouch = function (e) {
         if ('pointerType' in e.originalEvent)
-            return (e.originalEvent.pointerType === e.originalEvent.MSPOINTER_TYPE_TOUCH);
+            return (e.originalEvent.pointerType == 'touch');
         else true;
     };
     var getPos = function (e) {
@@ -323,9 +354,17 @@ $(function () {
 
     $(document.body)
         .bind({
+            // IE10
             'MSPointerDown': ontouchstart,
             'MSPointerMove': ontouchmove,
             'MSPointerUp': ontouchend,
+            
+            // IE11+
+            'pointerdown': ontouchstart,
+            'pointermove': ontouchmove,
+            'pointerup': ontouchend,
+            
+            // Webkit, Gecko
             'touchstart': ontouchstart,
             'touchmove': ontouchmove,
             'touchend': ontouchend,
