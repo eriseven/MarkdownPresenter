@@ -226,10 +226,24 @@ Present.buildSlideCounter = function () {
     $counter.html(optionHtmls.join(''));
 }
 
+function getParameterByName(name, url) {
+    if (!url) url = window.location.href;
+    name = name.replace(/[\[\]]/g, "\\$&");
+    var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+        results = regex.exec(url);
+    if (!results) return null;
+    if (!results[2]) return '';
+    return decodeURIComponent(results[2].replace(/\+/g, " "));
+}
+
 Present.reload = function() {
+    var markdownPage = getParameterByName('markdownPage');
+    if (markdownPage == "") markdownPage = 'presentation.md';
     Present.duringReloading = true;
     $.ajax({
-        url: 'presentation.md',
+        // url: 'presentation.md',
+
+        url: markdownPage,
         cache: false,
         dataType: 'text',
         success: function(data) {
@@ -281,7 +295,7 @@ Present.toggleAutoReload = function() {
             pageToJump = '';
         }
 
-        // Detect key combination to change slide transition effect. 
+        // Detect key combination to change slide transition effect.
         // ex) 'e','f' -> change effect to fade in/out.
         if (e.keyCode == 'E'.charCodeAt(0)) effectCmd = true;
         else if (effectCmd)
@@ -358,12 +372,12 @@ $(function () {
             'MSPointerDown': ontouchstart,
             'MSPointerMove': ontouchmove,
             'MSPointerUp': ontouchend,
-            
+
             // IE11+
             'pointerdown': ontouchstart,
             'pointermove': ontouchmove,
             'pointerup': ontouchend,
-            
+
             // Webkit, Gecko
             'touchstart': ontouchstart,
             'touchmove': ontouchmove,
